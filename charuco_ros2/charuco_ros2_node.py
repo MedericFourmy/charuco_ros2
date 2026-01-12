@@ -26,11 +26,6 @@ class CharucoDetector(Node):
         marker_length = 0.022
         self.board = cv2.aruco.CharucoBoard((nb_squares_x, nb_squares_y), square_length, marker_length, self.charuco_dict)
 
-        # Save to PNG for debug
-        # img = self.board.generateImage((2000, 2800))
-        # cv2.imwrite("charuco_board.png", img)
-        # print("Saved charuco_board.png")
-
         self.bridge = CvBridge()
 
         # --- Subscribers with sync ---
@@ -39,6 +34,7 @@ class CharucoDetector(Node):
         image_sub = message_filters.Subscriber(self, Image, img_topic)
         info_sub = message_filters.Subscriber(self, CameraInfo, info_topic)
         self.pub_debug = self.create_publisher(Image, "charuco/debug_image", 10)
+        self.pub_debug_info = self.create_publisher(CameraInfo, "charuco/camera_info", 10)
 
         # ApproximateTime or ExactTime depending on your pipeline
         self.ts = message_filters.ApproximateTimeSynchronizer(
@@ -124,7 +120,7 @@ class CharucoDetector(Node):
         debug_msg = self.bridge.cv2_to_imgmsg(frame, encoding="bgr8")
         debug_msg.header = img_msg.header  # keep timestamps aligned
         self.pub_debug.publish(debug_msg)
-
+        self.pub_debug_info.publish(info_msg)
 
 def np_mat_to_transform(t: np.ndarray, R: np.ndarray) -> Transform:
     """

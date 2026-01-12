@@ -1,0 +1,42 @@
+charuco_ros2:
+  charuco_dictionary_id:
+    type: string
+    default_value: "DICT_5X5_1000"
+    description: "Predefined dictionary id for the ArUco markers used in the ChArUco board."
+    read_only: true
+  square_length:
+    type: double
+    default_value: 0.030
+    description: "Length of each square in meters."
+    read_only: true
+  marker_length:
+    type: double
+    default_value: 0.022
+    description: "Length of each marker in meters."
+    read_only: true
+  nb_squares_x:
+    type: int
+    default_value: 12
+    description: "Number of squares along the X axis."
+    read_only: true
+  nb_squares_y:
+    type: int
+    default_value: 9
+    description: "Number of squares along the Y axis."
+    read_only: true
+  charuco_frame_id:
+    type: string
+    default_value: "charuco_board"
+    description: "TF frame id for the ChArUco board."
+    read_only: true
+  slop_time_synchronizer:
+    type: double
+    default_value: 0.05
+    description: "Slop time for the ApproximateTimeSynchronizer in seconds."
+    read_only: true
+
+  publish_debug_images:
+    type: bool
+    default_value: true
+    description: "Whether to publish debug images with detected markers drawn."
+    read_only: true

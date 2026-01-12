@@ -13,47 +13,76 @@ from geometry_msgs.msg import TransformStamped, Transform, Point
 import message_filters
 from tf2_ros import TransformBroadcaster
 
+# Automatically generated file
+from charuco_ros2.charuco_ros2_parameters import charuco_ros2  # noqa: E402
+
+
+aruco_dict_map = { 
+    "DICT_4X4_50": aruco.DICT_4X4_50,
+    "DICT_4X4_100": aruco.DICT_4X4_100,
+    "DICT_4X4_250": aruco.DICT_4X4_250,
+    "DICT_4X4_1000": aruco.DICT_4X4_1000,
+    "DICT_5X5_50": aruco.DICT_5X5_50,
+    "DICT_5X5_100": aruco.DICT_5X5_100,
+    "DICT_5X5_250": aruco.DICT_5X5_250,
+    "DICT_5X5_1000": aruco.DICT_5X5_1000,
+    "DICT_6X6_50": aruco.DICT_6X6_50,
+    "DICT_6X6_100": aruco.DICT_6X6_100,
+    "DICT_6X6_250": aruco.DICT_6X6_250,
+    "DICT_6X6_1000": aruco.DICT_6X6_1000,
+    "DICT_7X7_50": aruco.DICT_7X7_50,
+    "DICT_7X7_100": aruco.DICT_7X7_100,
+    "DICT_7X7_250": aruco.DICT_7X7_250,
+    "DICT_7X7_1000": aruco.DICT_7X7_1000,
+    "DICT_ARUCO_ORIGINAL": aruco.DICT_ARUCO_ORIGINAL,
+}
+
 
 class CharucoDetector(Node):
     def __init__(self):
         super().__init__("charuco_detector")
 
+        try:
+            self._param_listener = charuco_ros2.ParamListener(self)
+            self._params = self._param_listener.get_params()
+        except Exception as e:
+            self.get_logger().error(str(e))
+            raise e
+
         # --- Board configuration ---
-        self.dictionary_id = aruco.DICT_5X5_1000
+        self.dictionary_id = aruco_dict_map[self._params.charuco_dictionary_id]
         self.charuco_dict = aruco.getPredefinedDictionary(self.dictionary_id)
-        nb_squares_x, nb_squares_y = 12, 9
-        square_length = 0.030
-        marker_length = 0.022
-        self.board = cv2.aruco.CharucoBoard((nb_squares_x, nb_squares_y), square_length, marker_length, self.charuco_dict)
+        self.board = cv2.aruco.CharucoBoard(
+            (self._params.nb_squares_x, self._params.nb_squares_y), 
+            self._params.square_length, self._params.marker_length, 
+            self.charuco_dict
+        )
 
         self.bridge = CvBridge()
 
         # --- Subscribers with sync ---
-        img_topic = "/camera/camera/color/image_raw"
-        info_topic = "/camera/camera/color/camera_info"
-        image_sub = message_filters.Subscriber(self, Image, img_topic)
-        info_sub = message_filters.Subscriber(self, CameraInfo, info_topic)
-        self.pub_debug = self.create_publisher(Image, "charuco/debug_image", 10)
-        self.pub_debug_info = self.create_publisher(CameraInfo, "charuco/camera_info", 10)
-
-        # ApproximateTime or ExactTime depending on your pipeline
+        image_sub = message_filters.Subscriber(self, Image, "image_raw")
+        info_sub = message_filters.Subscriber(self, CameraInfo, "camera_info")
         self.ts = message_filters.ApproximateTimeSynchronizer(
-            [image_sub, info_sub], queue_size=10, slop=0.05
+            [image_sub, info_sub], queue_size=1, slop=self._params.slop_time_synchronizer
         )
         self.ts.registerCallback(self.sync_callback)
 
-        # TF
-        self.charuco_frame_id = "charuco_board"
+        # --- Publishers ---
+        self.pub_debug = self.create_publisher(Image, "charuco/debug_image", 10)
+        self.pub_debug_info = self.create_publisher(CameraInfo, "charuco/camera_info", 10)
+
         self.tf_broadcaster = TransformBroadcaster(self)
 
         self.get_logger().info("ChArUco detector node initialized.")
 
     def sync_callback(self, img_msg: Image, info_msg: CameraInfo):
-        # Convert ROS → OpenCV image
         frame = self.bridge.imgmsg_to_cv2(img_msg, desired_encoding="bgr8")
 
-        # Detect ArUco markers
         corners, ids, _ = aruco.detectMarkers(frame, self.charuco_dict)
+
+        # check if at least one subscriber to debug topics exists
+        publish_debug = self._params.publish_debug_images and (self.pub_debug.get_subscription_count() > 0 or self.pub_debug_info.get_subscription_count() > 0)
 
         if ids is not None and len(ids) > 0:
             # Refine and interpolate ChArUco corners
@@ -64,19 +93,22 @@ class CharucoDetector(Node):
                 board=self.board
             )
 
-            # Draw detected ArUco markers (optional)
-            aruco.drawDetectedMarkers(frame, corners, ids)
+            if publish_debug:
+                aruco.drawDetectedMarkers(frame, corners, ids)
 
             if retval > 0:
-                # Draw ChArUco corners
-                aruco.drawDetectedCornersCharuco(frame, charuco_corners, charuco_ids)
+                if publish_debug:
+                    aruco.drawDetectedCornersCharuco(frame, charuco_corners, charuco_ids)
 
                 # --- Pose Estimation ---
                 camera_matrix = np.array(info_msg.k).reshape(3, 3)
                 dist_coeffs = np.array(info_msg.d)
 
-                # camera board
-                # Allocate output pose vectors before calling (OpenCV 4.10 requirement)
+                # Allocate output pose vectors before calling (OpenCV > 4.10 requirement)
+                # rvec_c_b: Rotation vector of ChArUco board wrt camera
+                # tvec_c_b: Translation vector of ChArUco board wrt camera
+                # So that the transform T_c_b transforms points from board frame to camera frame
+                # p_c = T_c_b * p_b
                 rvec_c_b = np.zeros((3, 1), dtype=np.float64)
                 tvec_c_b = np.zeros((3, 1), dtype=np.float64)
 
@@ -95,19 +127,20 @@ class CharucoDetector(Node):
 
                     tf_stamped_c_b = TransformStamped()
                     tf_stamped_c_b.header = img_msg.header
-                    tf_stamped_c_b.child_frame_id = self.charuco_frame_id
+                    tf_stamped_c_b.child_frame_id = self._params.charuco_frame_id
                     tf_stamped_c_b.transform = np_mat_to_transform(tvec_c_b, R_c_b)
                     self.tf_broadcaster.sendTransform(tf_stamped_c_b)
 
-                    # Draw coordinate axes on the board
-                    cv2.drawFrameAxes(
-                        frame,
-                        camera_matrix,
-                        dist_coeffs,
-                        rvec_c_b,
-                        tvec_c_b,
-                        length=0.05  # 5 cm axes
-                    )
+                    if publish_debug:
+                        # Draw coordinate axes on the board
+                        cv2.drawFrameAxes(
+                            frame,
+                            camera_matrix,
+                            dist_coeffs,
+                            rvec_c_b,
+                            tvec_c_b,
+                            length=0.05  # 5 cm axes
+                        )
                     self.get_logger().info("ChArUco pose estimated.")
                 else:
                     self.get_logger().warn("Pose estimation failed.")
@@ -116,11 +149,12 @@ class CharucoDetector(Node):
         else:
             self.get_logger().warn("No ArUco markers detected.")
 
-        # --- Publish debug image with all drawings ---
-        debug_msg = self.bridge.cv2_to_imgmsg(frame, encoding="bgr8")
-        debug_msg.header = img_msg.header  # keep timestamps aligned
-        self.pub_debug.publish(debug_msg)
-        self.pub_debug_info.publish(info_msg)
+        if publish_debug:
+            # --- Publish debug image with all drawings ---
+            debug_msg = self.bridge.cv2_to_imgmsg(frame, encoding="bgr8")
+            debug_msg.header = img_msg.header  # keep timestamps aligned
+            self.pub_debug.publish(debug_msg)
+            self.pub_debug_info.publish(info_msg)
 
 def np_mat_to_transform(t: np.ndarray, R: np.ndarray) -> Transform:
     """

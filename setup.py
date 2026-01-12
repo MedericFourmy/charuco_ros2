@@ -1,6 +1,18 @@
 import os
+from pathlib import Path
 from glob import glob
 from setuptools import setup
+
+
+from generate_parameter_library_py.setup_helper import generate_parameter_module
+
+package_name = "charuco_ros2"
+project_source_dir = Path(__file__).parent
+
+module_name = "charuco_ros2_parameters"
+yaml_file = "charuco_ros2/charuco_ros2_parameters.yaml"
+generate_parameter_module(module_name, yaml_file)
+
 
 package_name = 'charuco_ros2'
 
@@ -11,7 +23,7 @@ setup(
     data_files=[
         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
         (os.path.join('share', package_name), ['package.xml']),
-        # (os.path.join('share', package_name, 'launch'), glob(os.path.join('launch', '*.launch.py'))),
+        (os.path.join('share', package_name, 'launch'), glob(os.path.join('launch', '*.launch.py'))),
     ],
     install_requires=['setuptools'],
     zip_safe=True,

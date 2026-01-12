@@ -34,7 +34,6 @@ charuco_ros2:
     default_value: 0.05
     description: "Slop time for the ApproximateTimeSynchronizer in seconds."
     read_only: true
-
   publish_debug_images:
     type: bool
     default_value: true

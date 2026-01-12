@@ -69,8 +69,8 @@ class CharucoDetector(Node):
         self.ts.registerCallback(self.sync_callback)
 
         # --- Publishers ---
-        self.pub_debug = self.create_publisher(Image, "charuco/debug_image", 10)
-        self.pub_debug_info = self.create_publisher(CameraInfo, "charuco/camera_info", 10)
+        self.pub_debug = self.create_publisher(Image, "charuco/debug_image", 1)
+        self.pub_debug_info = self.create_publisher(CameraInfo, "charuco/camera_info", 1)
 
         self.tf_broadcaster = TransformBroadcaster(self)
 

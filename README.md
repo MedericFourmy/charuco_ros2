@@ -1,13 +1,33 @@
 # Charuco ROS2
 
-## Run node
-`ros2 run charuco_ros2 charuco_ros2_node`
+ROS 2 wrapper around OpenCV aruco detection and pose estimation.
 
-## Realsense Demo
-`ros2 launch realsense2_camera rs_launch.py enable_infra1:=true enable_infra2:=true pointcloud.enable:=true`  
+# Build instruction
+```bash
+rosdep update --rosdistro $ROS_DISTRO
+rosdep install -y -i --from-paths src --rosdistro $ROS_DISTRO
+# parameter --symlink-install is optional
+colcon build --symlink-install
+source install/setup.bash
+```
 
-Higher resolution (low frequency):  
-- rs435:  
-`ros2 launch realsense2_camera rs_launch.py enable_infra1:=true enable_infra2:=true pointcloud.enable:=true rgb_camera.color_profile:=1280x720x6 depth_module.depth_profile:=1280x720x6 depth_module.infra_profile:=1280x720x6`
-- rs455:  
-`ros2 launch realsense2_camera rs_launch.py enable_infra1:=true enable_infra2:=true pointcloud.enable:=true rgb_camera.color_profile:=1280x720x5 depth_module.depth_profile:=1280x720x5 depth_module.infra_profile:=1280x720x5`
+# Launch
+## Charuco detection node
+```bash
+ros2 launch charuco_ros2 charuco_ros2.launch.py launch_rviz:=true
+```
+## (Optional) Realsense node
+```bash
+ros2 launch realsense2_camera rs_launch.py pointcloud.enable:=true
+```
+### Publishers
+
+- tf2 transform from the camera frame (frame_id of the <camera_name>/color/image_raw topic) to the charuco marker frame specified by the `charuco_id` parameter
+- **\<camera name\>/charuco/debug_image**: debug image with overlaid detections. Published if `publish_debug_images` is true.
+- **\<camera name\>/charuco/camera_info**: debug image info (copy of **\<camera name\>/color/camera_info**). Published if `publish_debug_images` is true.
+
+
+### Subscribers
+- **\<camera name\>/color/image_raw** [sensor_msgs/msg/Image]: Video stream where charuco board detection is done.
+
+- **\<camera name\>/color/camera_info** [sensor_msgs/msg/CameraInfo] Video stream camera info.

@@ -1,10 +1,10 @@
 /**:
   ros__parameters:
-  charuco_dictionary_id: "DICT_5X5_1000"
-  square_length: 0.030
-  marker_length: 0.022
-  nb_squares_x: 12
-  nb_squares_y: 9
-  charuco_frame_id: "charuco_board"
-  slop_time_synchronizer: 0.05
-  publish_debug_images: true
+    charuco_dictionary_id: "DICT_5X5_1000"
+    square_length: 0.030
+    marker_length: 0.022
+    nb_squares_x: 12
+    nb_squares_y: 9
+    charuco_frame_id: "charuco_board"
+    slop_time_synchronizer: 0.05
+    publish_debug_images: true

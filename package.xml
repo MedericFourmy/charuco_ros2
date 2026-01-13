@@ -7,6 +7,16 @@
   <maintainer email="mederic.fourmy@gmail.com">Mederic Fourmy</maintainer>
   <license>MIT</license>
 
+  <depend>rclpy</depend>
+  <depend>cv_bridge</depend>
+  <depend>tf2_ros</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+
+  <depend>python3-numpy</depend>
+  <depend>python3-quaternion</depend>
+  <depend version_gte="4.10">python3-opencv</depend>
+
   <export>
     <build_type>ament_python</build_type>
   </export>

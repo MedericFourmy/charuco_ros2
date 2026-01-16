@@ -13,9 +13,9 @@
   <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
 
-  <depend>python3-numpy</depend>
-  <depend>python3-quaternion</depend>
-  <depend version_gte="4.10">python3-opencv</depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python-numpy-quaternion-pip</exec_depend>
+  <exec_depend version_gte="4.10">python3-opencv</exec_depend>
 
   <export>
     <build_type>ament_python</build_type>
